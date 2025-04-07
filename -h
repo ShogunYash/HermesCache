@@ -1,12 +1,12 @@
 ---------- Core 0 ----------
 Read instructions : 2
-Write instructions: 2
-Total accesses    : 4
-Cache misses      : 4 (100%)
-Evictions         : 2
-Writebacks        : 1
-Idle cycles       : 500
-Total cycles      : 1313
+Write instructions: 1
+Total accesses    : 3
+Cache misses      : 3 (100%)
+Evictions         : 1
+Writebacks        : 0
+Idle cycles       : 400
+Total cycles      : 1212
 
 ---------- Core 1 ----------
 Read instructions : 2
@@ -16,19 +16,9 @@ Cache misses      : 3 (100%)
 Evictions         : 1
 Writebacks        : 0
 Idle cycles       : 300
-Total cycles      : 1313
+Total cycles      : 1212
 
 ---------- Core 2 ----------
-Read instructions : 1
-Write instructions: 2
-Total accesses    : 3
-Cache misses      : 3 (100%)
-Evictions         : 1
-Writebacks        : 0
-Idle cycles       : 500
-Total cycles      : 1313
-
----------- Core 3 ----------
 Read instructions : 2
 Write instructions: 1
 Total accesses    : 3
@@ -36,7 +26,17 @@ Cache misses      : 3 (100%)
 Evictions         : 1
 Writebacks        : 0
 Idle cycles       : 300
-Total cycles      : 1313
+Total cycles      : 1212
 
-Global bus invalidations: 8
-Global bus traffic (bytes): 512
+---------- Core 3 ----------
+Read instructions : 1
+Write instructions: 2
+Total accesses    : 3
+Cache misses      : 3 (100%)
+Evictions         : 1
+Writebacks        : 0
+Idle cycles       : 400
+Total cycles      : 1212
+
+Global bus invalidations: 7
+Global bus traffic (bytes): 448
