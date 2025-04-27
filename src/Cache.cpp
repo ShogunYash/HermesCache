@@ -38,6 +38,9 @@ bool Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
         core->nextFreeCycle = cycle;
         // Update the last used cycle for LRU policy
         updateLineOnHit(setIndex, lineIndex, cycle, isWrite, coreId, bus, cores);  // LRU cycle update
+        idleCycles += 1;       // Increment idle cycles for the core
+        core->execycles += 1;  // Increment execution cycles for the core
+        core->instPtr++;       // Move to the next instruction in the trace
         return true;
     }
     
@@ -191,7 +194,6 @@ int Cache::findReplacement(int setIndex, uint64_t cycle) {
 
 // Since the hit handling is now done directly in accessCache, 
 // we can simplify or remove these functions
-
 void Cache::updateLineOnHit(int setIndex, int lineIndex, uint64_t cycle, bool isWrite, 
     int coreId, Bus& bus, std::vector<Core*>& cores) {
     // This functionality is now handled in accessCache
