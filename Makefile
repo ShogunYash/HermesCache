@@ -9,7 +9,7 @@ INCDIR = include
 SRCDIR = src
 
 # List source files (adjust if file locations change)
-SOURCES = main.cpp $(SRCDIR)/Cache.cpp $(SRCDIR)/Core.cpp $(SRCDIR)/Bus.cpp $(SRCDIR)/Simulator.cpp
+SOURCES = $(SRCDIR)/main.cpp $(SRCDIR)/Cache.cpp $(SRCDIR)/Core.cpp $(SRCDIR)/Bus.cpp $(SRCDIR)/Simulator.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 TARGET = L1simulate
 
