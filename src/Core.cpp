@@ -5,7 +5,7 @@
 
 Request::Request(bool isWrite, uint32_t address) : isWrite(isWrite), address(address) {}
 
-Core::Core(int id, Cache* cache) : id(id), cache(cache), instPtr(0), nextFreeCycle(0) {}
+Core::Core(int id, Cache* cache) : id(id), cache(cache), instPtr(0), nextFreeCycle(0), readCount(0), writeCount(0) {}
 
 void Core::loadTrace(const std::string& filename) {
     std::ifstream fin(filename);
@@ -27,6 +27,13 @@ void Core::loadTrace(const std::string& filename) {
         uint32_t address = stoul(addrStr, nullptr, 16);
         bool isWrite = (op == 'W' || op == 'w');
         trace.emplace_back(isWrite, address);
+        
+        // Update the read/write counts while loading the trace
+        if (isWrite) {
+            writeCount++;
+        } else {
+            readCount++;
+        }
     }
     fin.close();
 }
