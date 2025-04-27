@@ -1,21 +1,38 @@
 #ifndef BUS_H
 #define BUS_H
-
-#include <cstdint>
+#pragma once
 #include <vector>
-#include "Core.hh"
+#include <cstdint>
+#include "Cache.hh"
 
-// The Bus class handles inter-core transactions to ensure cache coherence.
+class Core;
+
 class Bus {
 public:
-    uint64_t trafficBytes;   // Total bytes moved on the bus
-    uint64_t invalidations;  // Count of invalidation transactions on the bus
-
     Bus();
-    // Bus read transaction (for read misses).
-    void busRd(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b, int blockSize);
-    // Bus read-exclusive transaction (for write misses).
-    void busRdX(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b);
+    
+    // Enhanced bus transactions
+    enum BusResult {
+        NO_DATA,        // No cache has the data
+        SHARED_DATA,    // Data found in another cache (shared)
+        MODIFIED_DATA   // Data found in modified state (needs writeback)
+    };
+    
+    // Statistics
+    uint64_t busTransactions;
+    uint64_t invalidations;
+    uint64_t trafficBytes;
+    bool isbusy;    
+    
+    // Bus read (for read misses)
+    BusResult busRd(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b);
+    
+    // Bus read exclusive (for write misses or upgrades)
+    BusResult busRdX(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b);
+    
+    // Bus upgrade (for write to shared line)
+    void busUpgrade(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b);
+    
 };
 
 #endif // BUS_H
