@@ -13,6 +13,7 @@ private:
     std::vector<Core*> cores;   // Four processor cores
     Bus bus;                    // The bus for cache coherence transactions
     uint64_t globalCycle;       // Global simulation cycle
+    uint64_t totalCycles;  // Add this field to store the total simulation cycles
 
 public:
     Simulator(int s, int E, int b);
