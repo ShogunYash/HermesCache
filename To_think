@@ -1,3 +1,5 @@
 To think
 How to update the insertline currently using wrong lastUsedCycle 
 Make bool of bus Transcation as it is Single bus
+What if the core0 asks for memory read and core1 asks for memory read also after less than 100 cycle but core1 will be halted and
+after 100 cycle core0 again asks for memory read so which core to give priority
