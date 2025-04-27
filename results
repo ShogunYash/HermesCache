@@ -1,42 +1,48 @@
 ---------- Core 0 ----------
-Read instructions : 2380720
-Write instructions: 889412
-Total accesses    : 3270132
-Cache misses      : 184148 (5.63121%)
-Evictions         : 184020
-Writebacks        : 25959
-Idle cycles       : 21039400
-Total cycles      : 66116401
+Read hits         : 2
+Read misses       : 3
+Write hits        : 0
+Write misses      : 0
+Total accesses    : 5
+Miss rate         : 60%
+Evictions         : 3
+Writebacks        : 0
+Idle cycles       : 0
 
 ---------- Core 1 ----------
-Read instructions : 2388005
-Write instructions: 899247
-Total accesses    : 3287252
-Cache misses      : 183933 (5.59534%)
-Evictions         : 183805
-Writebacks        : 27417
-Idle cycles       : 21144500
-Total cycles      : 66116401
+Read hits         : 2
+Read misses       : 3
+Write hits        : 0
+Write misses      : 0
+Total accesses    : 5
+Miss rate         : 60%
+Evictions         : 3
+Writebacks        : 0
+Idle cycles       : 0
 
 ---------- Core 2 ----------
-Read instructions : 74523
-Write instructions: 43175
-Total accesses    : 117698
-Cache misses      : 8255 (7.01371%)
-Evictions         : 8127
-Writebacks        : 2801
-Idle cycles       : 1108100
-Total cycles      : 66116401
+Read hits         : 2
+Read misses       : 3
+Write hits        : 0
+Write misses      : 0
+Total accesses    : 5
+Miss rate         : 60%
+Evictions         : 3
+Writebacks        : 0
+Idle cycles       : 0
 
 ---------- Core 3 ----------
-Read instructions : 2416052
-Write instructions: 908867
-Total accesses    : 3324919
-Cache misses      : 184828 (5.55887%)
-Evictions         : 184700
-Writebacks        : 25455
-Idle cycles       : 21049400
-Total cycles      : 66116401
+Read hits         : 2
+Read misses       : 3
+Write hits        : 0
+Write misses      : 0
+Total accesses    : 5
+Miss rate         : 60%
+Evictions         : 3
+Writebacks        : 0
+Idle cycles       : 0
 
-Global bus invalidations: 310
-Global bus traffic (bytes): 20589248
+Total cycles         : 5
+Bus transactions     : 12
+Bus invalidations    : 0
+Global bus traffic   : 768 bytes
