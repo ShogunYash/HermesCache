@@ -25,7 +25,7 @@ public:
     uint64_t nextFreeCycle;     // Cycle count when the core becomes unblocked
     uint64_t readCount;         // Total read operations
     uint64_t writeCount;        // Total write operations
-
+    uint64_t execycles;
     Core(int id, Cache* cache);
     // Loads a trace file into the core's trace vector.
     void loadTrace(const std::string& filename);
