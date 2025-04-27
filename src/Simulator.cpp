@@ -141,8 +141,8 @@ void Simulator::printResults(const std::string& outFilename) {
         
         *out << "Core " << core->id << " Statistics:" << std::endl;
         *out << "Total Instructions: " << core->trace.size() << std::endl;
-        *out << "Total Reads: " << core->cache->readCount << std::endl;
-        *out << "Total Writes: " << core->cache->writeCount << std::endl;
+        *out << "Total Reads: " << core->readCount << std::endl;
+        *out << "Total Writes: " << core->writeCount << std::endl;
         *out << "Total Execution Cycles: " << totalCycles << std::endl;
         *out << "Idle Cycles: " << core->cache->idleCycles << std::endl;
         *out << "Cache Misses: " << totalMisses << std::endl;
