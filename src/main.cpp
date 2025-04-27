@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cstdlib>
-#include <getopt.h>
+#include <string>
 #include "Simulator.hh"
 
 void printHelp(char* programName) {
@@ -16,29 +16,22 @@ int main(int argc, char* argv[]) {
     std::string traceBaseName = "app1"; // e.g., app1_proc0.trace, etc.
     std::string outFilename = "";
 
-    int opt;
-    while ((opt = getopt(argc, argv, "t:s:E:b:o:h")) != -1) {
-        switch(opt) {
-            case 't':
-                traceBaseName = std::string(optarg);
-                break;
-            case 's':
-                s = std::stoi(optarg);
-                break;
-            case 'E':
-                E = std::stoi(optarg);
-                break;
-            case 'b':
-                b = std::stoi(optarg);
-                break;
-            case 'o':
-                outFilename = std::string(optarg);
-                break;
-            case 'h':
-                printHelp(argv[0]);
-                exit(EXIT_SUCCESS);
-            default:
-                break;
+    // Parse command line arguments
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "-t" && i + 1 < argc) {
+            traceBaseName = argv[++i];
+        } else if (arg == "-s" && i + 1 < argc) {
+            s = std::stoi(argv[++i]);
+        } else if (arg == "-E" && i + 1 < argc) {
+            E = std::stoi(argv[++i]);
+        } else if (arg == "-b" && i + 1 < argc) {
+            b = std::stoi(argv[++i]);
+        } else if (arg == "-o" && i + 1 < argc) {
+            outFilename = argv[++i];
+        } else if (arg == "-h") {
+            printHelp(argv[0]);
+            exit(EXIT_SUCCESS);
         }
     }
 
