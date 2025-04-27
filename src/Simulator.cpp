@@ -7,7 +7,7 @@
 #include <iomanip>  // Add this for setprecision and fixed#include <iomanip>
 
 Simulator::Simulator(int s, int E, int b)
-    : s(s), E(E), b(b), globalCycle(0), totalCycles(0)
+    : s(s), E(E), b(b), globalCycle(0)
 {
     // Create 4 cores.
     for (int i = 0; i < 4; i++) {
@@ -54,11 +54,8 @@ void Simulator::run() {
                 Request& req = core->trace[core->instPtr];
                 
                 // Access the cache
-                bool hit = core->cache->accessCache(req.isWrite, req.address, globalCycle, core->id, bus, cores);
-                
-                // Update core state
-                core->instPtr++;
-                
+                // Update the core's instruction pointer and next free cycle in the cache
+                bool hit = core->cache->accessCache(req.isWrite, req.address, globalCycle, core->id, bus, cores); 
             }
         }
         
@@ -89,9 +86,6 @@ void Simulator::run() {
             globalCycle++;
         }
     }
-
-    // Store final cycle count
-    this->totalCycles = globalCycle;
 }
 
 
@@ -143,7 +137,7 @@ void Simulator::printResults(const std::string& outFilename) {
         *out << "Total Instructions: " << core->trace.size() << std::endl;
         *out << "Total Reads: " << core->readCount << std::endl;
         *out << "Total Writes: " << core->writeCount << std::endl;
-        *out << "Total Execution Cycles: " << totalCycles << std::endl;
+        *out << "Total Execution Cycles: " << core->execycles << std::endl;
         *out << "Idle Cycles: " << core->cache->idleCycles << std::endl;
         *out << "Cache Misses: " << totalMisses << std::endl;
         *out << "Cache Miss Rate: " << std::fixed << std::setprecision(4) << missRate << "%" << std::endl;
