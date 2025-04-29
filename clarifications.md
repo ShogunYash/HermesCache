@@ -1,0 +1,8 @@
+- ~~A separate controller mechanism to handle snooping transactions even when the bus is busy as those are logical transfers, such as maintain a duplicate tag array such that , this controller can automatically check if the required address is there or not without bus.~~ not needed as use serialise the operations on basis of order in which they were generated.
+- In LRU is invalid blocks being given top priority .done
+- cache to cache transfer> more priority than memory read only for read miss
+ - is copy back also taking 100 cycles or how is the design implementation , and is the core stalled in that time period and bus .?
+- what is execution cycles =total instructions + no of idle cycles(for cache to cache to transfer ,in case of requestor and sender should we count , those cycles also as busy )
+- if value was modifed after it was requested by another cache , do e to m silent upgrade of the other cache the value in this cache is the old value that was in memory and is temporarily incoherent
+- on write miss if there is other caches in E or S even then get block from memory and set others to invalid
+- write backs of M state cache on eviction happens seperately of cycle instructions , and it is an independent bus transaction!? to include cycles in execution of that core?
