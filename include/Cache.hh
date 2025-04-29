@@ -49,7 +49,7 @@ public:
                    bool isWrite, CacheState initialState);
     void busupdate(class Bus& bus);
     void handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bus, std::vector<Core*>& cores, uint64_t haltcycles);
-    void handleWriteMiss(class Core* core, uint64_t address, uint64_t cycle, class Bus& bus, std::vector<Core*>& cores);
+    void handleWriteMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bus, std::vector<Core*>& cores, uint64_t haltcycles);
 };
 
 #endif // CACHE_H
