@@ -30,6 +30,7 @@ public:
     CacheState toupdate;
     uint32_t setIndex;
     int lineIndex;
+    bool moreleft;
     
     // Store the instrucion in bus
 
