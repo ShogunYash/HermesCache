@@ -15,6 +15,7 @@ public:
     enum BusResult {
         NO_DATA,        // No cache has the data
         SHARED_DATA,    // Data found in another cache (shared)
+        EXCLUSIVE_DATA,  // Data found in exclusive state 
         MODIFIED_DATA   // Data found in modified state (needs writeback)
     };
     
@@ -23,7 +24,16 @@ public:
     uint64_t invalidations;
     uint64_t trafficBytes;
     bool isbusy;    
+    uint64_t freeCycle;
+    // Instruction in bus of which core
+    uint64_t coreid;
+    CacheState toupdate;
+    uint32_t setIndex;
+    int lineIndex;
     
+    // Store the instrucion in bus
+
+
     // Bus read (for read misses)
     BusResult busRd(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b);
     

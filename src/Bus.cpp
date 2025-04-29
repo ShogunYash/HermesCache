@@ -1,11 +1,10 @@
 #include "Bus.hh"
 #include "Core.hh"
 
-Bus::Bus() : busTransactions(0), invalidations(0), trafficBytes(0) {}
+Bus::Bus() : busTransactions(0), invalidations(0), trafficBytes(0), freeCycle(0), setIndex(0), lineIndex(-1) {}
 
 Bus::BusResult Bus::busRd(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b) {
     busTransactions++;
-    
     uint32_t setIndex = (address >> b) & ((1 << s) - 1);
     uint32_t tag = address >> (s + b);
     BusResult result = NO_DATA;
@@ -17,17 +16,18 @@ Bus::BusResult Bus::busRd(int requesterId, uint32_t address, std::vector<Core*>&
         int lineIndex = core->cache->findLine(setIndex, tag);
         if (lineIndex != -1) {
             CacheLine &line = core->cache->sets[setIndex][lineIndex];
-            if (line.valid && line.state != INVALID) {
+            if (line.state != INVALID) {
                 // Another cache has this line
                 if (line.state == MODIFIED) {
                     // Modified data needs to be written back to memory
                     // and state changes to SHARED
-                    line.state = SHARED;
                     result = MODIFIED_DATA;
-                } else {
+                } else if(line.state == SHARED) {
                     // EXCLUSIVE or SHARED state
-                    line.state = SHARED;
                     result = SHARED_DATA;
+                }
+                else{
+                    result = EXCLUSIVE_DATA;
                 }
             }
         }
@@ -93,7 +93,4 @@ void Bus::busUpgrade(int requesterId, uint32_t address, std::vector<Core*>& core
             }
         }
     }
-    
-    // // Minimal traffic for upgrade (just the command, no data)
-    // trafficBytes += 8;  // Assuming 8 bytes for the command
 }

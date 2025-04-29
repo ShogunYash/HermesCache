@@ -32,14 +32,15 @@ void Simulator::loadTraces(const std::string& baseName) {
 }
 
 // (partial implementation - just the run method)
-
 void Simulator::run() {
     uint64_t globalCycle = 0;
     bool pending = false;
 
     while (true) {
         pending = false;
-        
+        if (bus.isbusy && bus.freeCycle == globalCycle && bus.lineIndex != -1) {
+            cores[bus.coreid]->cache->busupdate(bus);
+        }
         // Process each core for the current cycle
         for (Core* core : cores) {
             // Skip if core is waiting for a previous request
@@ -55,10 +56,10 @@ void Simulator::run() {
                 
                 // Access the cache
                 // Update the core's instruction pointer and next free cycle in the cache
-                bool hit = core->cache->accessCache(req.isWrite, req.address, globalCycle, core->id, bus, cores); 
+               core->cache->accessCache(req.isWrite, req.address, globalCycle, core->id, bus, cores); 
             }
         }
-        
+        // Review this part
         // If no more instructions and no pending operations, we're done
         if (!pending) {
             bool allDone = true;

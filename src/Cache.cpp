@@ -13,7 +13,7 @@ Cache::Cache(int s, int E, int b)
     sets.resize(1 << s, std::vector<CacheLine>(E));
 }
 
-bool Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int coreId, Bus& bus, std::vector<Core*>& cores) {
+void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int coreId, Bus& bus, std::vector<Core*>& cores) {
     
     uint32_t setIndex = (address >> b) & ((1 << s) - 1);
     uint32_t tag = address >> (s + b);
@@ -27,36 +27,77 @@ bool Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
         if (isWrite) {
             writeHits++;
             // If writing to a shared line, need to invalidate other copies
-            if (sets[setIndex][lineIndex].state == SHARED) {
+            if (sets[setIndex][lineIndex].state == SHARED && !bus.isbusy) {
                 bus.busUpgrade(coreId, address, cores, s, b);
                 sets[setIndex][lineIndex].state = MODIFIED;
+                core->execycles += 1;  // Increment execution cycles for the core
+                core->instPtr++;       // Move to the next instruction in the trace
+                // Update the last used cycle for LRU policy
+                updateLineOnHit(setIndex, lineIndex, cycle);  // LRU cycle update
+            }
+            else if (sets[setIndex][lineIndex].state == EXCLUSIVE) {
+                sets[setIndex][lineIndex].state = MODIFIED;
+                core->execycles += 1;  // Increment execution cycles for the core
+                core->instPtr++;       // Move to the next instruction in the trace
+                // Update the last used cycle for LRU policy
+                updateLineOnHit(setIndex, lineIndex, cycle);  // LRU cycle update
+            }
+            else {
+                // If the line is already in MODIFIED state, just update it
+                sets[setIndex][lineIndex].state = MODIFIED;
+                core->execycles += 1;  // Increment execution cycles for the core
+                core->instPtr++;       // Move to the next instruction in the trace
+                // Update the last used cycle for LRU policy
+                updateLineOnHit(setIndex, lineIndex, cycle);  // LRU cycle update
             }
         } else {
             readHits++;
+            core->execycles += 1;  // Increment execution cycles for the core
+            core->previnstr = core->instPtr;  // Update the previous instruction pointer
+            core->instPtr++;       // Move to the next instruction in the trace
+            // Update the last used cycle for LRU policy
+            updateLineOnHit(setIndex, lineIndex, cycle);  // LRU cycle update
         }
-        
-        core->nextFreeCycle = cycle;
-        // Update the last used cycle for LRU policy
-        updateLineOnHit(setIndex, lineIndex, cycle, isWrite, coreId, bus, cores);  // LRU cycle update
-        idleCycles += 1;       // Increment idle cycles for the core
-        core->execycles += 1;  // Increment execution cycles for the core
-        core->instPtr++;       // Move to the next instruction in the trace
-        return true;
+        core->nextFreeCycle = cycle;    // Update the core's next free cycle
+        return;
     }
     
     // Cache miss
-    if (isWrite) {
+    Core *core = cores[coreId];
+    if (isWrite && core->previnstr != core->instPtr) {
         writeMisses++;
-    } else {
+    } else if (core->previnstr != core->instPtr) {
+        // Read Miss
         readMisses++;
     }
-    
+    core->previnstr = core->instPtr;  // Update the previous instruction pointer
+     
+    if (!isWrite) {
+        // Read miss handling
+        handleReadMiss(coreId, address, cycle, bus, cores, haltcyles);
+    } else {
+        // Write miss handling
+        // handleWriteMiss(core, address, cycle, bus);
+    }
+}
+
+
+void Cache::handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bus, std::vector<Core*>& cores, uint64_t haltcyles ) {
+    // Handle read miss logic here
+    // victim is present and bus is not free
+    // We cant fetch the data from memory or cache
+    if ( bus.isbusy) {
+        // We can't fetch new data
+        return;  // Wait for the bus to be free before proceeding
+    }
     // Find a line to replace
-    lineIndex = findReplacement(setIndex, cycle);
+    uint32_t setIndex = (address >> b) & ((1 << s) - 1);
+    int lineIndex = findReplacement(setIndex, cycle);
     CacheLine& victim = sets[setIndex][lineIndex];
-    
+
     // Handle eviction based on victim's state
-    if (victim.valid) {
+    // Bus is free
+    if (victim.state != INVALID) {
         // Create the full address of the victim line for coherence operations
         uint32_t victimAddress = (victim.tag << (s + b)) | (setIndex << b);
         
@@ -65,14 +106,15 @@ bool Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
                 // Need to write back to memory
                 writeBacks++;
                 idleCycles += 100;  // Write-back penalty
-                haltcyles += 100;  // Write-back penalty
-                bus.trafficBytes += (1 << b);
-                // Add Invalid logic here if needed
-                break;
-                
-            case EXCLUSIVE:
-                // No need to notify other caches since we have the only copy
-                // No write-back needed since it's clean
+                haltcyles += 100;   // Write-back penalty
+                bus.trafficBytes += (1 << b); // Data being written from cache to memory
+                bus.isbusy = true;  // Bus is busy during write-back
+                // This assumption wrong
+                // bus.freeCycle = cycle + 100;  // Set the bus free cycle after write-back
+                // bus.coreid = coreId;  // Set the core ID for the write-back
+                // bus.toupdate = INVALID;  // Set the state to be updated
+                // bus.lineIndex = lineIndex;  // Set the line index for the write-back
+                // bus.setIndex = setIndex;   // Set the set index for the write-back  
                 break;
                 
             case SHARED:
@@ -90,7 +132,7 @@ bool Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
                     int otherLineIndex = otherCore->cache->findLine(otherSetIndex, otherTag);
                     if (otherLineIndex != -1) {
                         CacheLine& otherLine = otherCore->cache->sets[otherSetIndex][otherLineIndex];
-                        if (otherLine.valid && (otherLine.state == SHARED || otherLine.state == EXCLUSIVE)) {
+                        if (otherLine.valid && otherLine.state == SHARED ) {
                             sharedCount++;
                             lastCore = otherCore;
                         }
@@ -113,44 +155,72 @@ bool Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
                 // If multiple caches have the line, they remain in SHARED state
             }
             break;
-            
-        case INVALID:
-                // Nothing to do
+
+            case EXCLUSIVE:
+                // No need to notify other caches since we have the only copy
+                // No write-back needed since it's clean
                 break;
+
+            case INVALID:
+                // Nothing to do
+                break;  
         }
     }
-    
+
     // Fetch data from memory or other caches for read case only
     CacheState initialState = INVALID;  // Default for read miss with no other copies
+    // Now we need to do bus transactions
+    // Bus should be free
     
-    if (isWrite) {
-        // Write miss - get exclusive ownership
-        Bus::BusResult res = bus.busRdX(coreId, address, cores, s, b);
-        if (res == Bus::MODIFIED_DATA) {
-            // Need to wait for writeback
-            haltcyles += 100;
-            idleCycles += 100;
-        }
-        initialState = MODIFIED;
-    } else {
+    // if (isWrite) {
+    //     // Write miss - get exclusive ownership
+    //     Bus::BusResult res = bus.busRdX(coreId, address, cores, s, b);
+    //     if (res == Bus::MODIFIED_DATA) {
+    //         // Need to wait for writeback
+    //         haltcyles += 100;
+    //         idleCycles += 100;
+    //     }
+    //     initialState = MODIFIED;
+    // } else {
+
         // Read miss
         Bus::BusResult res = bus.busRd(coreId, address, cores, s, b);
         if (res == Bus::SHARED_DATA) {
             // Another cache has the line in shared state
             initialState = SHARED;
+            Core *respondcore;
+            uint32_t tag = address >> (s + b);
+            // Find a core to stall that have this line
+            for (Core* core : cores) {
+                if (core->id == coreId) continue;
+                
+                int lineIndex = core->cache->findLine(setIndex, tag);
+                if (lineIndex != -1) {
+                    CacheLine &line = core->cache->sets[setIndex][lineIndex];
+                    if( line.state == SHARED || line.state == EXCLUSIVE){
+                        respondcore = core;
+                        break;
+                    }
+                }
+            }
+            // What if we first evict the victim line (For Modified) then we come over 
+            // Here so nextFreeCycle will be different from current cycle
+            respondcore->nextFreeCycle = cycle
             // To get the block on our cache line we need to wait for the bus to be free and plus 2*N cycles to transfer 
             // the data N words each 4bytes
             // Assuming 2 cycle per word transfer
-            idleCycles += 2 * (1 << b) / 4; // 2 cycles per word transfer
-            haltcyles += 2 * (1 << b) / 4; // 2 cycles per word transfer
-        } else if (res == Bus::MODIFIED_DATA) {
+            idleCycles += (2 * (1 << b) / 4);   // 2 cycles per word transfer
+            haltcyles += (2 * (1 << b) / 4);    // 2 cycles per word transfer
+        }else if(res == Bus::EXCLUSIVE_DATA){
+            // add
+        }
+         else if (res == Bus::MODIFIED_DATA) {
             // Another cache had the line in modified state
             initialState = SHARED;
             // Need to wait for writeback
             idleCycles += 100;
             haltcyles += 100;
         }
-    }
 
     Core *core = cores[coreId];
     // Update the core's next free cycle based on the bus transaction time
@@ -159,10 +229,7 @@ bool Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
     // Cycle used for line will be the current cycle plus the time taken to get the data from the bus
     // and the time taken to transfer the data to the cache line
     insertLine(setIndex, lineIndex, tag, cycle + haltcyles, isWrite, initialState);
-    
-    return false;
 }
-
 int Cache::findLine(int setIndex, uint32_t tag) {
     for (int i = 0; i < E; i++) {
         if (sets[setIndex][i].valid && sets[setIndex][i].tag == tag)
@@ -194,17 +261,31 @@ int Cache::findReplacement(int setIndex, uint64_t cycle) {
 
 // Since the hit handling is now done directly in accessCache, 
 // we can simplify or remove these functions
-void Cache::updateLineOnHit(int setIndex, int lineIndex, uint64_t cycle, bool isWrite, 
-    int coreId, Bus& bus, std::vector<Core*>& cores) {
+void Cache::updateLineOnHit(uint32_t setIndex, int lineIndex, uint64_t cycle) {
     // This functionality is now handled in accessCache
     sets[setIndex][lineIndex].lastUsedCycle = cycle;
 }
 
 void Cache::insertLine(int setIndex, int lineIndex, uint32_t tag, uint64_t cycle,
                      bool isWrite, CacheState initialState) {
-    
     sets[setIndex][lineIndex].valid = true;
     sets[setIndex][lineIndex].tag = tag;
     sets[setIndex][lineIndex].lastUsedCycle = cycle;
     sets[setIndex][lineIndex].state = initialState;
+}
+
+void Cache::busupdate(class Bus &bus){
+    if(bus.toupdate!=INVALID)
+        sets[bus.setIndex][bus.lineIndex].valid = true;
+    else 
+        sets[bus.setIndex][bus.lineIndex].valid = false;
+    sets[bus.setIndex][bus.lineIndex].lastUsedCycle = bus.freeCycle;
+    sets[bus.setIndex][bus.lineIndex].state = bus.toupdate;
+    // Update the bus now make it free again
+    bus.isbusy = false;
+    bus.freeCycle = 0; // Reset the bus free cycle
+    bus.lineIndex = -1; // Reset the line index
+    bus.setIndex = 0; // Reset the set index
+    bus.coreid = 0; // Reset the core ID
+    bus.toupdate = INVALID; // Reset the state to be updated
 }

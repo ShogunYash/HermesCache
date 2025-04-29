@@ -38,16 +38,18 @@ public:
     Cache(int s, int E, int b);
     
     // Core cache operations
-    bool accessCache(bool isWrite, uint32_t address, uint64_t cycle, int coreId,
+    void accessCache(bool isWrite, uint32_t address, uint64_t cycle, int coreId,
                     class Bus& bus, std::vector<class Core*>& cores);
     int findLine(int setIndex, uint32_t tag);
     int findReplacement(int setIndex, uint64_t cycle);
     
     // Updated MESI protocol operations
-    void updateLineOnHit(int setIndex, int lineIndex, uint64_t cycle, bool isWrite, 
-                        int coreId, class Bus& bus, std::vector<class Core*>& cores);
+    void updateLineOnHit(uint32_t setIndex, int lineIndex, uint64_t cycle);
     void insertLine(int setIndex, int lineIndex, uint32_t tag, uint64_t cycle, 
                    bool isWrite, CacheState initialState);
+    void busupdate(class Bus& bus);
+    void handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bus, std::vector<Core*>& cores, uint64_t haltcycles);
+    void handleWriteMiss(class Core* core, uint64_t address, uint64_t cycle, class Bus& bus, std::vector<Core*>& cores);
 };
 
 #endif // CACHE_H

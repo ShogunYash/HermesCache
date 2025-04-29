@@ -5,7 +5,7 @@
 
 Request::Request(bool isWrite, uint32_t address) : isWrite(isWrite), address(address) {}
 
-Core::Core(int id, Cache* cache) : id(id), cache(cache), instPtr(0), nextFreeCycle(0), readCount(0), writeCount(0), execycles(0) {}
+Core::Core(int id, Cache* cache) : id(id), cache(cache), instPtr(0), previnstr(0), nextFreeCycle(0), readCount(0), writeCount(0), execycles(0) {}
 
 void Core::loadTrace(const std::string& filename) {
     std::ifstream fin(filename);

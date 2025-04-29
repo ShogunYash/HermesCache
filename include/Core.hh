@@ -11,7 +11,6 @@
 struct Request {
     bool isWrite;       // true for write; false for read
     uint32_t address;   // 32-bit memory address
-
     Request(bool isWrite, uint32_t address);
 };
 
@@ -22,6 +21,7 @@ public:
     Cache* cache;               // Pointer to the core's L1 cache
     std::vector<Request> trace; // Trace of memory requests for the core
     size_t instPtr;             // Instruction pointer in the trace
+    size_t previnstr;           // Previous instruction pointer
     uint64_t nextFreeCycle;     // Cycle count when the core becomes unblocked
     uint64_t readCount;         // Total read operations
     uint64_t writeCount;        // Total write operations
