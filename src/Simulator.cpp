@@ -38,13 +38,23 @@ void Simulator::run() {
 
     while (true) {
         pending = false;
-        if (bus.isbusy && bus.freeCycle == globalCycle && bus.lineIndex != -1) {
-            cores[bus.coreid]->cache->busupdate(bus);
+        // 
+        if (bus.isbusy && bus.freeCycle + 1 == globalCycle ) {
+            if( bus.moreleft){
+                Core* core = cores[bus.coreid]; 
+                Request& req = core->trace[core->instPtr];    
+                // Access the cache
+                // Update the core's instruction pointer and next free cycle in the cache
+                bus.isbusy = false; // Reset bus status
+                core->cache->accessCache(req.isWrite, req.address, globalCycle, core->id, bus, cores); 
+            }
+            else
+                cores[bus.coreid]->cache->busupdate(bus);
         }
         // Process each core for the current cycle
         for (Core* core : cores) {
             // Skip if core is waiting for a previous request
-            if (core->nextFreeCycle > globalCycle)
+            if (core->nextFreeCycle >= globalCycle)
                 continue;
             
             // Check if core has more instructions to process
