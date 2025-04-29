@@ -1,7 +1,8 @@
 #include "Bus.hh"
 #include "Core.hh"
 
-Bus::Bus() : busTransactions(0), invalidations(0), trafficBytes(0), freeCycle(0), setIndex(0), lineIndex(-1) {}
+Bus::Bus() : busTransactions(0), invalidations(0), trafficBytes(0), freeCycle(0), setIndex(0), 
+                lineIndex(-1), isbusy(false), moreleft(false), coreid(0) {}
 
 Bus::BusResult Bus::busRd(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b) {
     busTransactions++;
@@ -86,7 +87,7 @@ void Bus::busUpgrade(int requesterId, uint32_t address, std::vector<Core*>& core
         int lineIndex = core->cache->findLine(setIndex, tag);
         if (lineIndex != -1) {
             CacheLine &line = core->cache->sets[setIndex][lineIndex];
-            if (line.valid) {
+            if (line.state != INVALID) {
                 // Invalidate the line
                 line.state = INVALID;
                 invalidations++;
