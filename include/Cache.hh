@@ -35,7 +35,8 @@ public:
     uint64_t writeBacks;
     uint64_t idleCycles;  // Cycles spent servicing misses
     uint64_t evictions;
-    
+    uint64_t trafficBytes;
+
     
     Cache(int s, int E, int b);
     

@@ -153,7 +153,7 @@ void Simulator::printResults(const std::string& outFilename) {
         *out << "Idle Cycles: " << core->cache->idleCycles << std::endl;
         *out << "Cache Misses: " << totalMisses << std::endl;
         *out << "Cache Miss Rate: " << std::fixed << std::setprecision(4) << missRate << "%" << std::endl;
-        *out << "Cache Evictions: " << evictions << std::endl;
+        *out << "Cache Evictions: " << core->cache->evictions << std::endl;
         *out << "Writebacks: " << core->cache->writeBacks << std::endl;
         *out << "Bus Invalidations: " << bus.invalidations << std::endl;
         *out << "Data Traffic (Bytes): " << bus.trafficBytes << std::endl;

@@ -7,7 +7,7 @@
 Cache::Cache(int s, int E, int b) 
     : s(s), E(E), b(b), 
       readHits(0), readMisses(0), writeHits(0), writeMisses(0), 
-      writeBacks(0), idleCycles(0), evictions(0) {
+      writeBacks(0), idleCycles(0), evictions(0), trafficBytes(0) {
     
     // Initialize cache structure with 2^s sets, each with E lines
     sets.resize(1 << s, std::vector<CacheLine>(E));
@@ -112,6 +112,7 @@ void Cache::handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bu
                 writeBacks++;
                 idleCycles += 100;  // Write-back penalty
                 haltcycles += 100;   // Write-back penalty
+                trafficBytes += (1 << b);
                 bus.trafficBytes += (1 << b); // Data being written from cache to memory
                 bus.isbusy = true;  // Bus is busy during write-back
                 // This assumption wrong
