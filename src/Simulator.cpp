@@ -138,8 +138,9 @@ void Simulator::printResults(const std::string& outFilename) {
     for (Core* core : cores) {
         // Calculate total cache misses and miss rate
         int totalMisses = core->cache->readMisses + core->cache->writeMisses;
-        int totalAccesses = core->cache->readHits + core->cache->readMisses + 
-                            core->cache->writeHits + core->cache->writeMisses;
+        // int totalAccesses = core->cache->readHits + core->cache->readMisses + 
+        //                     core->cache->writeHits + core->cache->writeMisses;
+        int totalAccesses = core->readCount + core->writeCount;
         double missRate = (totalAccesses > 0) ? 
                           (double)totalMisses * 100.0 / totalAccesses : 0.0;
         int evictions = totalMisses - core->cache->writeBacks;
