@@ -76,7 +76,7 @@ Bus::BusResult Bus::busRdX(int requesterId, uint32_t address, std::vector<Core*>
 
 void Bus::busUpgrade(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b) {
     busTransactions++;
-    
+    invalidations++;
     uint32_t setIndex = (address >> b) & ((1 << s) - 1);
     uint32_t tag = address >> (s + b);
     
@@ -90,7 +90,6 @@ void Bus::busUpgrade(int requesterId, uint32_t address, std::vector<Core*>& core
             if (line.state != INVALID) {
                 // Invalidate the line
                 line.state = INVALID;
-                invalidations++;
             }
         }
     }

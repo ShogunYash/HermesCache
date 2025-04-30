@@ -7,7 +7,7 @@
 Cache::Cache(int s, int E, int b) 
     : s(s), E(E), b(b), 
       readHits(0), readMisses(0), writeHits(0), writeMisses(0), 
-      writeBacks(0), idleCycles(0), evictions(0), trafficBytes(0) {
+      writeBacks(0), idleCycles(0), evictions(0), trafficBytes(0), invalidations(0) {
     
     // Initialize cache structure with 2^s sets, each with E lines
     sets.resize(1 << s, std::vector<CacheLine>(E));
@@ -26,9 +26,16 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
         // Cache hit
         if (isWrite) {
             // If writing to a shared line, need to invalidate other copies
-            if (sets[setIndex][lineIndex].state == SHARED && !bus.isbusy) {
+            // bus needs to be free 
+            if (sets[setIndex][lineIndex].state == SHARED && bus.isbusy) {
+                // We can't fetch new data
+                idleCycles++;
+                // Wait for the bus to be free before proceeding
+            }
+            else if (sets[setIndex][lineIndex].state == SHARED && !bus.isbusy) {
                 bus.busUpgrade(coreId, address, cores, s, b);
                 sets[setIndex][lineIndex].state = MODIFIED;
+                invalidations++;       // Increment invalidation count
                 core->execycles += 1;  // Increment execution cycles for the core
                 core->instPtr++;       // Move to the next instruction in the trace
                 // Update the last used cycle for LRU policy
@@ -43,19 +50,28 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
                 updateLineOnHit(setIndex, lineIndex, cycle);  // LRU cycle update
                 writeHits++;
             }
-            else {
+            else if (!bus.isbusy && sets[setIndex][lineIndex].state == MODIFIED) {
+                // write back the current modified line to memory
+                // and update it again to modified state
                 // If the line is already in MODIFIED state, just update it
                 sets[setIndex][lineIndex].state = MODIFIED;
-                core->execycles += 1;  // Increment execution cycles for the core
+                core->execycles += 101;  // Increment execution cycles for the core
                 core->instPtr++;       // Move to the next instruction in the trace
+                trafficBytes = (1 << b);
+                bus.trafficBytes = (1 << b);
                 // Update the last used cycle for LRU policy
                 updateLineOnHit(setIndex, lineIndex, cycle);  // LRU cycle update
                 writeHits++;
+                writeBacks++;
+            }
+            else {
+                // Line in MODIFIED state bus is busy and we need to wait for the bus to be free
+                // As we want to writeback the data to memory
+                idleCycles++;
             }
         } else {
             readHits++;
             core->execycles += 1;  // Increment execution cycles for the core
-            core->previnstr = core->instPtr;  // Update the previous instruction pointer
             core->instPtr++;       // Move to the next instruction in the trace
             // Update the last used cycle for LRU policy
             updateLineOnHit(setIndex, lineIndex, cycle);  // LRU cycle update
@@ -63,18 +79,7 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
         core->nextFreeCycle = cycle;    // Update the core's next free cycle
         return;
     }
-    
-    // Cache miss
-    // For first instr it will not take writemisses or read misses
-    Core *core = cores[coreId];
-    if (isWrite && core->previnstr != core->instPtr) {
-        writeMisses++;
-    } else if (core->previnstr != core->instPtr) {
-        // Read Miss
-        readMisses++;
-    }
-    core->previnstr = core->instPtr;  // Update the previous instruction pointer
-    
+        
     if (!isWrite) {
         // Read miss handling
         handleReadMiss(coreId, address, cycle, bus, cores, haltcycles);
@@ -83,7 +88,6 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
         handleWriteMiss(coreId, address, cycle, bus, cores, haltcycles);
     }
 }
-
 
 void Cache::handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bus, std::vector<Core*>& cores, uint64_t haltcycles ) {
     // Handle read miss logic here
@@ -94,6 +98,7 @@ void Cache::handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bu
         idleCycles++;
         return;  // Wait for the bus to be free before proceeding
     }
+    
     // Find a line to replace
     uint32_t setIndex = (address >> b) & ((1 << s) - 1);
     int lineIndex = findReplacement(setIndex, cycle);
@@ -240,6 +245,7 @@ void Cache::handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bu
     // Cycle used for line will be the current cycle plus the time taken to get the data from the bus
     // and the time taken to transfer the data to the cache line
     uint32_t tag = address >> (s + b);
+    readMisses++;
     insertLine(setIndex, lineIndex, tag, cycle + haltcycles, false, FinalState);
     core->instPtr++;  // Move to the next instruction in the trace
 }
@@ -379,6 +385,7 @@ void Cache::handleWriteMiss(int coreId, uint64_t address, uint64_t cycle, Bus& b
     // and the time taken to transfer the data to the cache line
     uint32_t tag = address >> (s + b);
     insertLine(setIndex, lineIndex, tag, cycle + haltcycles, false, FinalState);
+    writeMisses++;
     core->instPtr++;  // Move to the next instruction in the trace
 }
 
