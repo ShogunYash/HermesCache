@@ -57,8 +57,8 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
                 sets[setIndex][lineIndex].state = MODIFIED;
                 core->execycles += 101;  // Increment execution cycles for the core
                 core->instPtr++;       // Move to the next instruction in the trace
-                trafficBytes = (1 << b);
-                bus.trafficBytes = (1 << b);
+                trafficBytes += (1 << b);
+                bus.trafficBytes += (1 << b);
                 // Update the last used cycle for LRU policy
                 updateLineOnHit(setIndex, lineIndex, cycle);  // LRU cycle update
                 writeHits++;
@@ -174,6 +174,9 @@ void Cache::handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bu
                 // No need to notify other caches since we have the only copy
                 // No write-back needed since it's clean
                 break;
+            default :
+                // Handle other states if necessary
+                break;
         }
     }
 
@@ -247,12 +250,11 @@ void Cache::handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bu
         // No other cache have this block
         // Read from memory
         FinalState = EXCLUSIVE;
-        uint32_t tag = address >> (s + b);
         // Need to wait for writeback 
         // idleCycles += 100 ;
         Core *core = cores[coreId];
         core->execycles += 100;   // Increment execution cycles for the core
-        haltcycles += 100 ;
+        haltcycles += 100;
         bus.isbusy = true;
         bus.freeCycle = cycle + haltcycles;  // Set the bus free cycle after write-back
         bus.trafficBytes += (1 << b);        // Data being read from Memory to cache
@@ -353,6 +355,9 @@ void Cache::handleWriteMiss(int coreId, uint64_t address, uint64_t cycle, Bus& b
             case EXCLUSIVE:
                 // No need to notify other caches since we have the only copy
                 // No write-back needed since it's clean
+                break;
+            default :
+                // Handle other states if necessary
                 break;
         }
     }

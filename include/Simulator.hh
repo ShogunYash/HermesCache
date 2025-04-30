@@ -22,7 +22,7 @@ public:
     // Runs the simulation until all cores have completed their traces.
     void run();
     // Prints simulation results; if outFilename is nonempty, writes to that file.
-    void printResults(const std::string& outFilename = "");
+    void printResults(const std::string& outFilename = "", const std::string& trace_prefix = "");
 };
 
 #endif // SIMULATOR_H

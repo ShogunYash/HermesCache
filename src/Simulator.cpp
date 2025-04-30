@@ -39,7 +39,7 @@ void Simulator::run() {
     while (true) {
         pending = false;
         // 
-        if (bus.isbusy && bus.freeCycle + 1 == globalCycle ) {
+        if (bus.isbusy && bus.freeCycle + 1 <= globalCycle ) {
             if(bus.moreleft){
                 Core* core = cores[bus.coreid]; 
                 Request& req = core->trace[core->instPtr];    
@@ -91,7 +91,7 @@ void Simulator::run() {
 }
 
 
-void Simulator::printResults(const std::string& outFilename) {
+void Simulator::printResults(const std::string& outFilename, const std::string& trace_prefix) {
     std::ostream *out;
     std::ofstream ofs;
     if (!outFilename.empty()) {
@@ -112,7 +112,7 @@ void Simulator::printResults(const std::string& outFilename) {
     
     // Print simulation parameters header
     *out << "Simulation Parameters:" << std::endl;
-    *out << "Trace Prefix: " << "<trace_prefix>" << std::endl;
+    *out << "Trace Prefix: " << trace_prefix << std::endl;
     *out << "Set Index Bits: " << s << std::endl;
     *out << "Associativity: " << E << std::endl;
     *out << "Block Bits: " << b << std::endl;
@@ -134,7 +134,7 @@ void Simulator::printResults(const std::string& outFilename) {
         int totalAccesses = core->readCount + core->writeCount;
         double missRate = (totalAccesses > 0) ? 
                           (double)totalMisses * 100.0 / totalAccesses : 0.0;
-        int evictions = totalMisses - core->cache->writeBacks;
+        // int evictions = totalMisses - core->cache->writeBacks;
         
         *out << "Core " << core->id << " Statistics:" << std::endl;
         *out << "Total Instructions: " << core->trace.size() << std::endl;

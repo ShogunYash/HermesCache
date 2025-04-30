@@ -25,12 +25,8 @@ public:
     uint64_t trafficBytes;
     bool isbusy;    
     uint64_t freeCycle;
-    // Instruction in bus of which core
-    uint64_t coreid;
-    CacheState toupdate;
-    uint32_t setIndex;
-    int lineIndex;
     bool moreleft;
+    uint64_t coreid;
     
     // Store the instrucion in bus
 

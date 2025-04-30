@@ -1,8 +1,8 @@
 #include "Bus.hh"
 #include "Core.hh"
 
-Bus::Bus() : busTransactions(0), invalidations(0), trafficBytes(0), freeCycle(0), setIndex(0), 
-                lineIndex(-1), isbusy(false), moreleft(false), coreid(0) {}
+Bus::Bus() : busTransactions(0), invalidations(0), trafficBytes(0),  
+                isbusy(false), freeCycle(0), moreleft(false), coreid(0) {}
 
 Bus::BusResult Bus::busRd(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b) {
     busTransactions++;

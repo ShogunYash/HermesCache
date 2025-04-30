@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
     Simulator sim(s, E, b);
     sim.loadTraces(traceBaseName);
     sim.run();
-    sim.printResults(outFilename);
+    sim.printResults(outFilename, traceBaseName);
 
     return 0;
 }
