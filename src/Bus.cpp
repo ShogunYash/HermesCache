@@ -34,8 +34,6 @@ Bus::BusResult Bus::busRd(int requesterId, uint32_t address, std::vector<Core*>&
         }
     }
     
-    // Count bus traffic
-    trafficBytes += (1 << b);  // One cache line worth of data
     return result;
 }
 
