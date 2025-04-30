@@ -17,10 +17,12 @@ Cache::Cache(int s, int E, int b)
 }
 
 CacheLine* Cache::findLine(int setIndex, uint32_t tag) {
+    // Create a key for the cache lookup using the set index and tag
     CacheKey key(setIndex, tag);
     auto& cacheMap = cacheMaps[setIndex];
     auto it = cacheMap.find(key);
     
+    // Return a pointer to the cache line if found and valid, otherwise return null
     if (it != cacheMap.end() && it->second.first.valid && it->second.first.state != INVALID) {
         return &(it->second.first);
     }
@@ -28,17 +30,18 @@ CacheLine* Cache::findLine(int setIndex, uint32_t tag) {
 }
 
 void Cache::updateLRU(int setIndex, uint32_t tag, uint64_t cycle) {
+    // Create a key for the cache lookup
     CacheKey key(setIndex, tag);
     auto& lruList = lruLists[setIndex];
     auto& cacheMap = cacheMaps[setIndex];
     
     auto it = cacheMap.find(key);
     if (it != cacheMap.end()) {
-        // Remove from current position in LRU list
-        lruList.erase(it->second.second);
-        // Add to front of LRU list (most recently used)
-        lruList.push_front(key);
-        // Update the map with new iterator and cycle
+        // Move the item to the front of the LRU list (most recently used position)
+        lruList.erase(it->second.second);  // Remove from current position
+        lruList.push_front(key);           // Add to front of list
+        
+        // Update the cache map entry with the new list position and cycle
         it->second.second = lruList.begin();
         it->second.first.lastUsedCycle = cycle;
     }
@@ -48,23 +51,25 @@ std::pair<CacheKey, CacheLine*> Cache::findReplacement(int setIndex, uint64_t cy
     auto& lruList = lruLists[setIndex];
     auto& cacheMap = cacheMaps[setIndex];
     
-    // Fix sign comparison warning by casting E to the same type as size()
+    // If the set isn't full, we don't need to replace anything yet
     if (cacheMap.size() < static_cast<size_t>(E)) {
-        // Return a placeholder key - the actual tag will be filled in by the caller
+        // Return a placeholder key with null cache line (indicating space available)
         CacheKey newKey(setIndex, 0);
         return std::make_pair(newKey, nullptr);
     }
     
-    // Otherwise, evict the least recently used entry
+    // Otherwise, we need to evict the least recently used entry
     if (!lruList.empty()) {
+        // Get the least recently used item (back of the LRU list)
         CacheKey victimKey = lruList.back();
         auto it = cacheMap.find(victimKey);
         if (it != cacheMap.end()) {
+            // Return the key and a pointer to the cache line to be replaced
             return std::make_pair(victimKey, &it->second.first);
         }
     }
     
-    // Fallback - shouldn't reach here if implementation is correct
+    // Safety fallback - should never reach here with proper implementation
     CacheKey fallbackKey(setIndex, 0);
     return std::make_pair(fallbackKey, nullptr);
 }
@@ -74,68 +79,75 @@ void Cache::insertLine(int setIndex, uint32_t tag, uint64_t cycle, bool isWrite,
     auto& lruList = lruLists[setIndex];
     auto& cacheMap = cacheMaps[setIndex];
     
-    // If we already have this line, update it
+    // If we're updating an existing line, no need to evict anything
     auto it = cacheMap.find(key);
     if (it != cacheMap.end()) {
-        // Update existing line
+        // Update existing line's state and timestamp
         it->second.first.valid = true;
         it->second.first.state = initialState;
         it->second.first.lastUsedCycle = cycle;
         
-        // Update LRU
+        // Update LRU position
         lruList.erase(it->second.second);
         lruList.push_front(key);
         it->second.second = lruList.begin();
         return;
     }
     
-    // Fix sign comparison warning by casting E to the same type as size()
+    // If the set is full, evict the LRU (least recently used) item
     if (cacheMap.size() >= static_cast<size_t>(E)) {
         CacheKey victimKey = lruList.back();
-        cacheMap.erase(victimKey);
-        lruList.pop_back();
+        cacheMap.erase(victimKey);  // Remove from map
+        lruList.pop_back();         // Remove from LRU list
     }
     
-    // Create new cache line
+    // Create a new cache line with the provided state and timestamp
     CacheLine newLine;
     newLine.valid = true;
     newLine.tag = tag;
     newLine.state = initialState;
     newLine.lastUsedCycle = cycle;
     
-    // Add to front of LRU list
+    // Add to front of LRU list (most recently used position)
     lruList.push_front(key);
     
-    // Add to map with reference to LRU position
+    // Add to map with reference to its position in the LRU list
     cacheMap[key] = {newLine, lruList.begin()};
 }
 
 void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int coreId, Bus& bus, std::vector<Core*>& cores) {
+    // Extract set index and tag from address
     uint32_t setIndex = (address >> b) & ((1 << s) - 1);
     uint32_t tag = address >> (s + b);
     uint64_t haltcycles = 0;
     
-    // Check if the line is in the cache
+    // Try to find the cache line in our hashmap-based cache
     CacheLine* cacheLine = findLine(setIndex, tag);
     
     if (cacheLine != nullptr) {
+        // Cache hit handling
         Core *core = cores[coreId];
-        // Cache hit
+        
         if (isWrite) {
-            // If writing to a shared line, need to invalidate other copies
+            // Write hit cases based on MESI protocol
+            
+            // Case 1: Writing to a SHARED line requires bus access to invalidate other copies
             if (cacheLine->state == SHARED && bus.isbusy) {
+                // Bus is busy, must wait
                 idleCycles++;
-                return; // Wait for bus to be free
+                return;
             }
             else if (cacheLine->state == SHARED && !bus.isbusy) {
+                // Bus is free, invalidate other copies and upgrade to MODIFIED
                 bus.busUpgrade(coreId, address, cores, s, b);
                 cacheLine->state = MODIFIED;
                 invalidations++;
-                core->execycles += 1;
+                core->execycles += 1;  // One cycle for write
                 core->instPtr++;
                 updateLRU(setIndex, tag, cycle);
                 writeHits++;
             }
+            // Case 2: Writing to an EXCLUSIVE line - silent upgrade to MODIFIED
             else if (cacheLine->state == EXCLUSIVE) {
                 cacheLine->state = MODIFIED;
                 core->execycles += 1;
@@ -143,27 +155,32 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
                 updateLRU(setIndex, tag, cycle);
                 writeHits++;
             }
+            // Case 3: Writing to a MODIFIED line
             else if (!bus.isbusy && cacheLine->state == MODIFIED) {
+                // Line is already modified, just update timestamp
+                // In reality we'd need to write back eventually
                 cacheLine->state = MODIFIED;
-                core->execycles += 101;
+                core->execycles += 101;  // 1 cycle for hit + 100 for writeback
                 haltcycles += 100;
                 core->instPtr++;
-                trafficBytes += (1 << b);
+                trafficBytes += (1 << b);  // Count traffic from writeback
                 bus.trafficBytes += (1 << b);
                 updateLRU(setIndex, tag, cycle);
                 writeHits++;
                 writeBacks++;
                 bus.isbusy = true;
                 bus.moreleft = false;
-                bus.freeCycle = cycle + 100;
+                bus.freeCycle = cycle + 100;  // Bus busy for writeback
             }
             else {
+                // Bus is busy for a MODIFIED line, wait
                 idleCycles++;
                 return;
             }
         } else {
+            // Read hit is simpler - just update stats and LRU
             readHits++;
-            core->execycles += 1;
+            core->execycles += 1;  // One cycle for read hit
             core->instPtr++;
             updateLRU(setIndex, tag, cycle);
         }
@@ -171,14 +188,16 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
         return;
     }
 
+    // Cache miss handling
+    
+    // If the bus is busy, we have to wait
     if (bus.isbusy) {
         idleCycles++;
         return;
     }
 
-    // Replace C++17 structured binding with C++11 compatible code
+    // Find a line to replace using our LRU tracking
     std::pair<CacheKey, CacheLine*> replacement = findReplacement(setIndex, cycle);
-    // Remove the unused variable victimKey
     CacheLine* victim = replacement.second;
     
     // Handle eviction if needed
@@ -188,28 +207,31 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
         uint32_t victimAddress = (victimTag << (s + b)) | (setIndex << b);
         Core *core = cores[coreId];
         
+        // Handle eviction based on MESI state
         switch (victim->state) {
             case MODIFIED:
+                // MODIFIED line requires writeback to memory
                 writeBacks++;
-                haltcycles += 100;
+                haltcycles += 100;  // 100 cycles penalty for writeback
                 core->execycles += 100;
-                trafficBytes += (1 << b);
+                trafficBytes += (1 << b);  // Count traffic for writeback
                 bus.trafficBytes += (1 << b);
                 bus.isbusy = true;
                 bus.coreid = coreId;
-                victim->state = INVALID;
-                bus.moreleft = true;
+                victim->state = INVALID;  // Invalidate the line
+                bus.moreleft = true;      // More processing needed
                 bus.freeCycle = cycle + 100;
                 core->nextFreeCycle = cycle + haltcycles;
-                return;
+                return;  // Return and come back later after writeback
                 
             case SHARED:
-                // Handle shared state
+                // For SHARED lines, check if other caches have copies
                 {
                     int sharedCount = 0;
                     Core* lastCore = nullptr;
                     bus.busTransactions++;
 
+                    // Count other cores with this line in SHARED state
                     for (Core* otherCore : cores) {
                         if (otherCore->id == coreId) continue;
                         
@@ -223,7 +245,7 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
                         }
                     }
                     
-                    // If only one other cache has this line, upgrade it
+                    // If only one other cache has the line, it can be upgraded to EXCLUSIVE
                     if (sharedCount == 1 && lastCore != nullptr) {
                         uint32_t otherSetIndex = (victimAddress >> b) & ((1 << s) - 1);
                         uint32_t otherTag = victimAddress >> (s + b);
@@ -233,11 +255,12 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
                             otherLine->state = EXCLUSIVE;
                         }
                     }
+                    // If multiple caches have copies, they remain in SHARED state
                 }
                 break;
                 
             case EXCLUSIVE:
-                // No write-back needed
+                // EXCLUSIVE line doesn't need writeback (it's clean)
                 break;
                 
             default:
@@ -245,7 +268,7 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
         }
     }
 
-    // Handle miss
+    // Handle the actual miss operation
     if (!isWrite) {
         handleReadMiss(coreId, address, cycle, bus, cores, haltcycles);
     } else {
