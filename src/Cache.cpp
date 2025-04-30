@@ -146,6 +146,7 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
             else if (!bus.isbusy && cacheLine->state == MODIFIED) {
                 cacheLine->state = MODIFIED;
                 core->execycles += 101;
+                haltcycles += 100;
                 core->instPtr++;
                 trafficBytes += (1 << b);
                 bus.trafficBytes += (1 << b);
@@ -166,7 +167,7 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
             core->instPtr++;
             updateLRU(setIndex, tag, cycle);
         }
-        core->nextFreeCycle = cycle;
+        core->nextFreeCycle = cycle + haltcycles;
         return;
     }
 
