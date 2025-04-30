@@ -39,7 +39,7 @@ Bus::BusResult Bus::busRd(int requesterId, uint32_t address, std::vector<Core*>&
 
 Bus::BusResult Bus::busRdX(int requesterId, uint32_t address, std::vector<Core*>& cores, int s, int b) {
     busTransactions++;
-    
+    invalidations++;
     uint32_t setIndex = (address >> b) & ((1 << s) - 1);
     uint32_t tag = address >> (s + b);
     BusResult result = NO_DATA;
@@ -62,7 +62,7 @@ Bus::BusResult Bus::busRdX(int requesterId, uint32_t address, std::vector<Core*>
                 
                 // Invalidate the line in other cache
                 line.state = INVALID;
-                invalidations++;
+
             }
         }
     }

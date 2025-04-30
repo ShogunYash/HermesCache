@@ -358,12 +358,12 @@ void Cache::handleWriteMiss(int coreId, uint64_t address, uint64_t cycle, Bus& b
     }
     
     // Fetch data from memory
-    CacheState FinalState = MODIFIED;  // Default for Write miss with no other copies
-
     // Write miss make other copies invalid
     Bus::BusResult res = bus.busRd(coreId, address, cores, s, b);
+    // Give invalidations to other caches
     if (res == Bus::SHARED_DATA || res == Bus::EXCLUSIVE_DATA) {
         // Another cache has the line in shared state
+        invalidations++;
         uint32_t tag = address >> (s + b);
         // Find cores that have this line
         for (Core* core : cores) {
@@ -379,6 +379,7 @@ void Cache::handleWriteMiss(int coreId, uint64_t address, uint64_t cycle, Bus& b
         }
     } else if (res == Bus::MODIFIED_DATA) {
         // Another cache had the line in modified state
+        invalidations++;
         uint32_t tag = address >> (s + b);
         // Find a core to stall that have this line
         for (Core* core : cores) {
@@ -387,28 +388,38 @@ void Cache::handleWriteMiss(int coreId, uint64_t address, uint64_t cycle, Bus& b
             int lineIndex = core->cache->findLine(setIndex, tag);
             if (lineIndex != -1) {
                 CacheLine &line = core->cache->sets[setIndex][lineIndex];
-                if( line.state == MODIFIED){
+                if(line.state == MODIFIED){
                     core->cache->sets[setIndex][lineIndex].state = INVALID;
+                    core->cache->writeBacks++;             // Increment write-back count
+                    core->cache->trafficBytes += (1 << b); // Data being written from cache to memory
                 }
             }
         }
         // Need to wait for writeback 
-        idleCycles += 100;
-        haltcycles += 100;
+        // First we write to memory then get the data from memory
+        idleCycles += 100;    
+        haltcycles += 100;  
         bus.isbusy = true;
+        bus.trafficBytes += (1 << b);        // Data being read from cache to cache
+        // Didn't add the traffic bytes here as we are not reading from memory
     }
 
     Core *core = cores[coreId];
     // ADD another 100 cycles for reading data from memory to cache
-    idleCycles += 100;
+    // idleCycles += 100;
+    // Bus is busy for other core writeback and this core read
+    bus.freeCycle = cycle + haltcycles;  // Set the bus free cycle 
     haltcycles += 100;
+    core->execycles += 100;   // Increment execution cycles for the core
     // Update the core's next free cycle based on the bus transaction time
     core->nextFreeCycle = cycle + haltcycles;
+    // Memory (Responder) to cache (Reciever) transfer
+    trafficBytes += (1 << b);            // Data being read from Memory to cache (Reciever)
     // Insert the new line
     // Cycle used for line will be the current cycle plus the time taken to get the data from the bus
     // and the time taken to transfer the data to the cache line
     uint32_t tag = address >> (s + b);
-    insertLine(setIndex, lineIndex, tag, cycle + haltcycles, true, FinalState);
+    insertLine(setIndex, lineIndex, tag, cycle + haltcycles, true, MODIFIED);
     writeMisses++;
     core->instPtr++;  // Move to the next instruction in the trace
 }

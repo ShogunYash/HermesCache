@@ -147,7 +147,7 @@ void Simulator::printResults(const std::string& outFilename) {
         *out << "Cache Evictions: " << core->cache->evictions << std::endl;
         *out << "Writebacks: " << core->cache->writeBacks << std::endl;
         *out << "Bus Invalidations: " << core->cache->invalidations << std::endl;
-        *out << "Data Traffic (Bytes): " << bus.trafficBytes << std::endl;
+        *out << "Data Traffic (Bytes): " << core->cache->trafficBytes << std::endl;
         *out << std::endl;
     }
     
