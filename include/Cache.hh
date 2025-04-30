@@ -34,6 +34,8 @@ public:
     uint64_t writeMisses;
     uint64_t writeBacks;
     uint64_t idleCycles;  // Cycles spent servicing misses
+    uint64_t evictions;
+    
     
     Cache(int s, int E, int b);
     

@@ -7,7 +7,7 @@
 Cache::Cache(int s, int E, int b) 
     : s(s), E(E), b(b), 
       readHits(0), readMisses(0), writeHits(0), writeMisses(0), 
-      writeBacks(0), idleCycles(0) {
+      writeBacks(0), idleCycles(0), evictions(0) {
     
     // Initialize cache structure with 2^s sets, each with E lines
     sets.resize(1 << s, std::vector<CacheLine>(E));
@@ -65,6 +65,7 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
     }
     
     // Cache miss
+    // For first instr it will not take writemisses or read misses
     Core *core = cores[coreId];
     if (isWrite && core->previnstr != core->instPtr) {
         writeMisses++;
@@ -79,7 +80,7 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
         handleReadMiss(coreId, address, cycle, bus, cores, haltcycles);
     } else {
         // Write miss handling
-        // handleWriteMiss(core, address, cycle, bus);
+        handleWriteMiss(coreId, address, cycle, bus, cores, haltcycles);
     }
 }
 
@@ -101,6 +102,7 @@ void Cache::handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bu
     // Handle eviction based on victim's state
     // Bus is free
     if (victim.state != INVALID) {
+        evictions++;
         // Create the full address of the victim line for coherence operations
         uint32_t victimAddress = (victim.tag << (s + b)) | (setIndex << b);
         Core *core = cores[coreId];
@@ -199,6 +201,7 @@ void Cache::handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bu
         haltcycles += (2 * (1 << b) / 4);    // 2 cycles per word transfer
     } else if (res == Bus::MODIFIED_DATA) {
         // Another cache had the line in modified state
+        // Check for this evictions to take or not
         FinalState = SHARED;
         uint32_t tag = address >> (s + b);
         // Find a core to stall that have this line
@@ -256,6 +259,7 @@ void Cache::handleWriteMiss(int coreId, uint64_t address, uint64_t cycle, Bus& b
     // Handle eviction based on victim's state
     // Bus is free
     if (victim.state != INVALID) {
+        evictions++;
         // Create the full address of the victim line for coherence operations
         uint32_t victimAddress = (victim.tag << (s + b)) | (setIndex << b);
         Core *core = cores[coreId];
