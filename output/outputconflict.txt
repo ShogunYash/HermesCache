@@ -1,0 +1,68 @@
+Simulation Parameters:
+Trace Prefix: bonus_tc/conflict
+Set Index Bits: 6
+Associativity: 2
+Block Bits: 5
+Block Size (Bytes): 32
+Number of Sets: 64
+Cache Size (KB per core): 4
+MESI Protocol: Enabled
+Write Policy: Write-back, Write-allocate
+Replacement Policy: LRU
+Bus: Central snooping bus
+
+Core 0 Statistics:
+Total Instructions: 5
+Total Reads: 0
+Total Writes: 5
+Total Execution Cycles: 500
+Idle Cycles: 202
+Cache Misses: 5
+Cache Miss Rate: 100.00%
+Cache Evictions: 0
+Writebacks: 5
+Bus Invalidations: 2
+Data Traffic (Bytes): 320
+
+Core 1 Statistics:
+Total Instructions: 5
+Total Reads: 0
+Total Writes: 5
+Total Execution Cycles: 500
+Idle Cycles: 504
+Cache Misses: 5
+Cache Miss Rate: 100.00%
+Cache Evictions: 0
+Writebacks: 5
+Bus Invalidations: 5
+Data Traffic (Bytes): 320
+
+Core 2 Statistics:
+Total Instructions: 5
+Total Reads: 0
+Total Writes: 5
+Total Execution Cycles: 502
+Idle Cycles: 908
+Cache Misses: 3
+Cache Miss Rate: 60.00%
+Cache Evictions: 0
+Writebacks: 5
+Bus Invalidations: 3
+Data Traffic (Bytes): 256
+
+Core 3 Statistics:
+Total Instructions: 5
+Total Reads: 0
+Total Writes: 5
+Total Execution Cycles: 602
+Idle Cycles: 1412
+Cache Misses: 3
+Cache Miss Rate: 60.00%
+Cache Evictions: 1
+Writebacks: 3
+Bus Invalidations: 3
+Data Traffic (Bytes): 192
+
+Overall Bus Summary:
+Total Bus Transactions: 16
+Total Bus Traffic (Bytes): 576

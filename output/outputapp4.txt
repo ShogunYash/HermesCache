@@ -1,0 +1,68 @@
+Simulation Parameters:
+Trace Prefix: bonus_tc/app4
+Set Index Bits: 6
+Associativity: 2
+Block Bits: 5
+Block Size (Bytes): 32
+Number of Sets: 64
+Cache Size (KB per core): 4
+MESI Protocol: Enabled
+Write Policy: Write-back, Write-allocate
+Replacement Policy: LRU
+Bus: Central snooping bus
+
+Core 0 Statistics:
+Total Instructions: 1
+Total Reads: 0
+Total Writes: 1
+Total Execution Cycles: 100
+Idle Cycles: 0
+Cache Misses: 1
+Cache Miss Rate: 100.00%
+Cache Evictions: 0
+Writebacks: 1
+Bus Invalidations: 0
+Data Traffic (Bytes): 64
+
+Core 1 Statistics:
+Total Instructions: 1
+Total Reads: 0
+Total Writes: 1
+Total Execution Cycles: 100
+Idle Cycles: 100
+Cache Misses: 1
+Cache Miss Rate: 100.00%
+Cache Evictions: 0
+Writebacks: 1
+Bus Invalidations: 1
+Data Traffic (Bytes): 64
+
+Core 2 Statistics:
+Total Instructions: 1
+Total Reads: 0
+Total Writes: 1
+Total Execution Cycles: 100
+Idle Cycles: 201
+Cache Misses: 1
+Cache Miss Rate: 100.00%
+Cache Evictions: 0
+Writebacks: 1
+Bus Invalidations: 1
+Data Traffic (Bytes): 64
+
+Core 3 Statistics:
+Total Instructions: 1
+Total Reads: 0
+Total Writes: 1
+Total Execution Cycles: 100
+Idle Cycles: 302
+Cache Misses: 1
+Cache Miss Rate: 100.00%
+Cache Evictions: 0
+Writebacks: 0
+Bus Invalidations: 1
+Data Traffic (Bytes): 32
+
+Overall Bus Summary:
+Total Bus Transactions: 4
+Total Bus Traffic (Bytes): 96
