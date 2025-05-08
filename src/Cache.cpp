@@ -156,21 +156,21 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
                 writeHits++;
             }
             // Case 3: Writing to a MODIFIED line
-            else if (!bus.isbusy && cacheLine->state == MODIFIED) {
+            else if (cacheLine->state == MODIFIED) {
                 // Line is already modified, just update timestamp
                 // In reality we'd need to write back eventually
                 cacheLine->state = MODIFIED;
-                core->execycles += 101;  // 1 cycle for hit + 100 for writeback
-                haltcycles += 100;
+                core->execycles += 1;  // 1 cycle for hit + 100 for writeback
+                // haltcycles += 100;
                 core->instPtr++;
-                trafficBytes += (1 << b);  // Count traffic from writeback
-                bus.trafficBytes += (1 << b);
+                // trafficBytes += (1 << b);  // Count traffic from writeback
+                // bus.trafficBytes += (1 << b);
                 updateLRU(setIndex, tag, cycle);
                 writeHits++;
-                writeBacks++;
-                bus.isbusy = true;
-                bus.moreleft = false;
-                bus.freeCycle = cycle + 100;  // Bus busy for writeback
+                // writeBacks++;
+                // bus.isbusy = true;
+                // bus.moreleft = false;
+                // bus.freeCycle = cycle + 100;  // Bus busy for writeback
             }
             else {
                 // Bus is busy for a MODIFIED line, wait
@@ -255,12 +255,14 @@ void Cache::accessCache(bool isWrite, uint32_t address, uint64_t cycle, int core
                             otherLine->state = EXCLUSIVE;
                         }
                     }
+                    victim->state = INVALID;
                     // If multiple caches have copies, they remain in SHARED state
                 }
                 break;
                 
             case EXCLUSIVE:
                 // EXCLUSIVE line doesn't need writeback (it's clean)
+                victim->state = INVALID;
                 break;
                 
             default:
@@ -341,6 +343,7 @@ void Cache::handleReadMiss(int coreId, uint64_t address, uint64_t cycle, Bus& bu
 
     Core *core = cores[coreId];
     core->nextFreeCycle = cycle + haltcycles;
+    core->execycles += 1;
     readMisses++;
     insertLine(setIndex, tag, cycle + haltcycles, false, finalState);
     core->instPtr++;
@@ -388,6 +391,7 @@ void Cache::handleWriteMiss(int coreId, uint64_t address, uint64_t cycle, Bus& b
     bus.freeCycle = cycle + haltcycles;
     haltcycles += 100;
     core->execycles += 100;
+    core->execycles += 1;
     core->nextFreeCycle = cycle + haltcycles;
     trafficBytes += (1 << b);
     
